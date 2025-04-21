@@ -5478,8 +5478,967 @@ Seccion 7: Seguridad
 		-Asi, se puede obtener el usuario loggeado en nuestra app pero de forma segura para que no se peuda su Id de usuario.
 		
 	113. Utilizando el servicio de usuarios.
+		-Se va a usar el servicio de usuarios para crear, actualizar y borrar un comentario.
+		-Se va a ComentariosControlelr y se inyecta IServiciosUsuarios.
+		private readonly ApplicationDbContext context;
+		private readonly IMapper mapper;
+		private readonly IServiciosUsuarios serviciosUsuarios;
+
+		public ComentariosController(ApplicationDbContext context, IMapper mapper, IServiciosUsuarios serviciosUsuarios)
+		{
+			this.context = context;
+			this.mapper = mapper;
+			this.serviciosUsuarios = serviciosUsuarios;
+		}
+		
+		-Se va a la parte del Post, despues de examninar la existencia del libro se hace lo siguiente en el POST.
+		 No deberia llegar a pasar el NotFound porque hay que recordar que arriba hay un Authorize.
+		 Asi se asigna al comentario el Id del usuario que escribio dicho comentario.
+		 Antes
+		[HttpPost]
+		public async Task<ActionResult<ComentarioDTO>> Post(int libroId, ComentarioCreacionDTO comentarioCreacionDTO)
+		{
+			var existeLibro = await context.Libros.AnyAsync(x => x.Id == libroId);
+
+			if (!existeLibro)
+			{
+				return NotFound();
+			}
+
+			var comentario = mapper.Map<Comentario>(comentarioCreacionDTO);
+			comentario.LibroId = libroId;
+			comentario.FechaPublicacion = DateTime.Now;
+			context.Add(comentario);
+			await context.SaveChangesAsync();
+
+			var comentarioDTO = mapper.Map<ComentarioDTO>(comentario);
+
+			return CreatedAtRoute("ObtenerComentario", new { id = comentario.Id, libroId }, comentarioDTO);
+		}
+		
+		DESPUES
+		[HttpPost]
+		public async Task<ActionResult<ComentarioDTO>> Post(int libroId, ComentarioCreacionDTO comentarioCreacionDTO)
+		{
+			var existeLibro = await context.Libros.AnyAsync(x => x.Id == libroId);
+
+			if (!existeLibro)
+			{
+				return NotFound();
+			}
+
+			var usuario = await serviciosUsuarios.ObtenerUsuario();
+
+			if(usuario is null)
+			{
+				return NotFound();
+			}
+
+			var comentario = mapper.Map<Comentario>(comentarioCreacionDTO);
+			comentario.LibroId = libroId;
+			comentario.FechaPublicacion = DateTime.Now;
+			comentario.UsuarioId = usuario.Id;
+			context.Add(comentario);
+			await context.SaveChangesAsync();
+
+			var comentarioDTO = mapper.Map<ComentarioDTO>(comentario);
+
+			return CreatedAtRoute("ObtenerComentario", new { id = comentario.Id, libroId }, comentarioDTO);
+		}
+		
+		-En el patch se hace algo parecido pero no se quiere que se actualice el Id del usuario que escribio el comentario 
+		 pero si quiero verificar que el usuario que esta haciendo la actualizacion del comentario se ael que escribio el comentario.
+		 FGavilan no va a ir a editar el comentario de Claudia.
+		 Se retorna un Forbid porque no se peude editar el comentario de otro.
+		ANTES
+		[HttpPatch("{id}")]
+		public async Task<ActionResult> Patch(Guid id, int libroId, JsonPatchDocument<ComentarioPatchDTO> patchDoc)
+		{
+			if (patchDoc is null)
+			{
+				return BadRequest();
+			}
+
+			var existeLibro = await context.Libros.AnyAsync(x => x.Id == libroId);
+
+			if (!existeLibro)
+			{
+				return NotFound();
+			}
+
+			var comentarioDB = await context.Comentarios.FirstOrDefaultAsync(x => x.Id == id);
+
+			if (comentarioDB is null)
+			{
+				return NotFound();
+			}
+
+			var comentarioPatchDTO = mapper.Map<ComentarioPatchDTO>(comentarioDB);
+
+			patchDoc.ApplyTo(comentarioPatchDTO, ModelState);
+
+			var esValido = TryValidateModel(comentarioPatchDTO);
+
+			if (!esValido)
+			{
+				return ValidationProblem();
+			}
+
+			mapper.Map(comentarioPatchDTO, comentarioDB);
+
+			await context.SaveChangesAsync();
+
+			return NoContent();
+		}
 		
 		
+		DESPUES
+		[HttpPatch("{id}")]
+		public async Task<ActionResult> Patch(Guid id, int libroId, JsonPatchDocument<ComentarioPatchDTO> patchDoc)
+		{
+			if (patchDoc is null)
+			{
+				return BadRequest();
+			}
+
+			var existeLibro = await context.Libros.AnyAsync(x => x.Id == libroId);
+
+			if (!existeLibro)
+			{
+				return NotFound();
+			}
+
+			var usuario = await serviciosUsuarios.ObtenerUsuario();
+
+			if (usuario is null)
+			{
+				return NotFound();
+			}
+
+			var comentarioDB = await context.Comentarios.FirstOrDefaultAsync(x => x.Id == id);
+
+			if (comentarioDB is null)
+			{
+				return NotFound();
+			}
+
+			if (comentarioDB.UsuarioId != usuario.Id)
+			{
+				return Forbid();
+			}
+
+			var comentarioPatchDTO = mapper.Map<ComentarioPatchDTO>(comentarioDB);
+
+			patchDoc.ApplyTo(comentarioPatchDTO, ModelState);
+
+			var esValido = TryValidateModel(comentarioPatchDTO);
+
+			if (!esValido)
+			{
+				return ValidationProblem();
+			}
+
+			mapper.Map(comentarioPatchDTO, comentarioDB);
+
+			await context.SaveChangesAsync();
+
+			return NoContent();
+		}
+		
+		-En el delete, se quita lo de los registrosBorrados porque queremos que solamente Felipe peuda borrar el comentario de Felipe,e s decir, que un usuario borre su propio comentario.
+		 Para obtener el Id del usuario que hizo el comentario, tengo que obtener antes el comentario.
+		 Se va a aprovechar a mostrar otra forma que se tiene de borrar registros de una tabla usando EF Core.
+		 Se recuerda que se obtiene como param de la funcion el Id y no el comentario como tal.
+		 ANTES
+		[HttpDelete("{id}")]
+		public async Task<ActionResult> Delete(Guid id, int libroId)
+		{
+			var existeLibro = await context.Libros.AnyAsync(x => x.Id == libroId);
+
+			if (!existeLibro)
+			{
+				return NotFound();
+			}
+
+			var registrosBorrados = await context.Comentarios.Where(x => x.Id == id).ExecuteDeleteAsync();
+
+			if (registrosBorrados == 0)
+			{
+				return NotFound();
+			}
+
+			return NoContent();
+		}
+		
+		DESPUES
+		[HttpDelete("{id}")]
+		public async Task<ActionResult> Delete(Guid id, int libroId)
+		{
+		var existeLibro = await context.Libros.AnyAsync(x => x.Id == libroId);
+
+		if (!existeLibro)
+		{
+			return NotFound();
+		}
+
+		var usuario = await serviciosUsuarios.ObtenerUsuario();
+
+		if (usuario is null)
+		{
+			return NotFound();
+		}
+
+		var comentarioDB = await context.Comentarios.FirstOrDefaultAsync(x => x.Id == id);
+
+		if(comentarioDB is null)
+		{
+			return NotFound();
+		}
+
+		if (comentarioDB.UsuarioId != usuario.Id)
+		{
+			return Forbid();
+		}
+
+		context.Remove(comentarioDB);
+		await context.SaveChangesAsync();
+
+		return NoContent();
+		}
+		
+		-Se va a probar con un solo usuario y si tengo dos usuarios, verificar que por ejemplo Felipe no pueda borrar comentario de Claudia.
+		
+		-Se levanta la app y se va a PostMan. Hay que loggearse antes...
+		-Se lanza esta peticion HTTP: http://localhost:5065/api/libros/1/comentarios.
+		-El token se mete en Authorization > Bearer.
+		-Se loggea con Borja y Felipe (jgavilan) y se copian en Notepad++ los dos token.
+		- Se manda una peticion GET http://localhost:5065/api/libros/1/comentarios con el Authorization token y se ve que esta vacio porque no hay comentarios.
+		-Se crea un comentario con el token de fgavilan.
+		-POST http://localhost:5065/api/libros/1/comentarios
+		{
+			"cuerpo": "Buen Libro"
+		}
+		
+		-Se hac u select en comentarios y se ve el Id del usuario.
+		-Se va a intentar actualizar un comentario.
+		-Se duplica el tab, se coge el Id del comentario, no del usuario y es un patch
+		-PATCH http://localhost:5065/api/libros/1/comentarios/836add29-4c70-4ddf-a158-08dd7dbcf17d
+		[{
+			"op": "replace",
+			"path": "/cuerpo",
+			"value": "comentario actualizado"
+		}]
+		
+		-Se hace un get del comentario.
+		GET http://localhost:5065/api/libros/1/comentarios OK
+		
+		-Se va a borrar el comentario, duplicando la ultima pestaña, cambiando patch por delete.
+		-Da OK el rdo. Se le da al GET y hay cero comentarios.
+		
+		-Se va al POST y se vuelve a crear el comentario.
+		-Se va al GET y todo OK.
+		-Se coge el token de Borja ahora y se va al patch. Con el token de borja, se va a intentar actualizar el comentario de Felipe.
+		-Da Forbiden.
+		-No se peude actualizar ni borrar el comentario de otra persona...
+		
+	114. Renovado el token
+		-Los token sabemos que expiran por tema de seguridad para que no tengas un token que exista para siempre y si usuario malicioso lo tiene, no pueda usarlo siempre.
+		 Esa es la logica de ponerle un tiempo de expiracion al token.
+		-Nosotros le pusimos un año de expiracion al token pero en un banco es demasiado y se suele poner 15 mins.
+		-Si eres usuario, estas en app bancario y de repente te saca en plenas oepraciones de forma activa y te saco porque el token 
+		 expiró. Eso es pesima experiencia de usuario. Si se pone una fecha de expiracion corta como unos 20 mins, se peude poner un endpoint o una accion 
+		 a traves de la cual el cliente puede renovar el token para asi, si usuario usa activamente la app, no se permite que el token expire sino que 
+		 el cliente solicita nuevo token y por detras de camaras sae le da un nuevo token con nueva fecha de expiracion ya si usuario sigue usando app sin problema.
+		-Se va a UsuariosController y se mete ese endpoint. No se tiene que recibir nada porque al final voy a verificar que el usuario esta loggeado
+		 usando el servicio de usuarios. Se inyecta en el controlador el IServiciosUsuario
+		public class UsuariosController : ControllerBase
+		{
+			private readonly UserManager<IdentityUser> userManager;
+			private readonly IConfiguration configuration;
+			private readonly SignInManager<IdentityUser> signInManager;
+			private readonly IServiciosUsuarios serviciosUsuarios;
+
+			public UsuariosController(UserManager<IdentityUser> userManager, IConfiguration configuration, SignInManager<IdentityUser> signInManager, IServiciosUsuarios serviciosUsuarios)
+			{
+				this.userManager = userManager;
+				this.configuration = configuration;
+				this.signInManager = signInManager;
+				this.serviciosUsuarios = serviciosUsuarios;
+			}
+		
+		Endpoint
+		[HttpGet("renovar-token")]
+		public async Task<ActionResult<RespuestaAutenticacionDTO>> RenovarToken()
+		{
+			var usuario = await serviciosUsuarios.ObtenerUsuario();
+
+			if (usuario is null)
+			{
+				return NotFound();
+			}
+
+			var credencialesUsuarioDTO = new CredencialesUsuarioDTO { Email = usuario.Email! };
+
+			var respuestaAutenticacion = await ConstruirToken(credencialesUsuarioDTO);
+			return respuestaAutenticacion;
+		}
+		
+		-Se prueba
+		GET http://localhost:5065/api/usuarios/renovar-token Se mete el token de uno de los usuarios autenticados.
+		
+		-Se ve que se renueva y asi si tenemos un token que solo dura 20 mins en lo que el usuario usa la app, el cliente que puede ser una app de android, angular puede renovar silenciosamente el token
+		 para dar una buena experiencia de usuario.
+		 
+	115. Configurando la autorizacion basada en claims
+		-Falta brindar aun mas seguridad a nuestras rutas.
+		-Es decir, que solo usuarios admin que puedan realziar tal o tal accion.
+		-Parta empezar se va a crea runa politica de seguridad.
+		-Esta permite indicar qué caracteristicas debe tener un usuario para pdoer realizar una accion.
+		-Se va a decir que debe tener un claim especial que es el de los admin.
+		-Se va a Program y se mete debajo de autenticacion ya que se va a meter una politica de autorizacion
+		-La politica requiere que se tenga la politica esAdmin.
+		-Cualquier usuario que tenga este claim va a ser un admin.
+		-Se peuden meter ahi tantas politicas como se quiera. Se peude meter "esVendedor".
+		builder.Services.AddAuthorization(opciones =>
+		{
+			opciones.AddPolicy("esadmin", politica => politica.RequireClaim("esadmin"));
+		});
+		
+		-Para usar la politica, se va a AuotresColeccionController y en lugar de decir solo Authorize que dice que el usuario tiene que estar autenticado, pues tambien
+		 se mete la politica. El JSONWebToken debe tener este claim de esadmin.
+		[ApiController]
+		[Route("api/autores-coleccion")]
+		[Authorize(Policy = "esadmin")]
+		public class AutoresColeccionController : ControllerBase
+		
+		-Se mete tb en AutoresController
+		-El del AllowAnonymous que permite obtener siempre el lista de autores, es OK.
+		
+		-En comentarios tenemos el Authorize peroe sta bien porque se tienen comentarios como crear comentario, pero cualquier usuario puede crear comentarios.
+		-Se mete idem en LibrosController.
+		
+		-En usuarios se tiene el authorize pero hay que tener cuidado porque cualquier que tenga un JSONWebToken debe poder utilizar como la accion de RenovarToken.
+		 pero habra otras accioens como agregar los claims a u usuario que no.
+		 Una forma sencilla es quitar el Auhorize y trabajar a nivel especifico de cada accion.
+		 Se quitan los AllowedAnonymous y en renovar-token se mete Authorize.
+		 
+		-Se van a crear las acciones de UsuariosController que si que vana  necesitar la poitica de esadmin que van a permitr agregar un claim a un usuario.
+		-Se crea EditarClaimDTO.
+		public class EditarClaimDTO
+		{
+			[EmailAddress]
+			[Required]
+			public required string Email { get; set; }
+		}
+		
+		-Ahora vamos a crear acciones debajo de renovar-token.
+		-Se recibe el email del usuario al cual quiero hacer admin. Yo soy admin y quiero hacer a otro admin por eso no se usa el servicio de usuarios.
+		[HttpPost("hacer-admin")]
+		[Authorize(Policy = "esadmin")]
+		public async Task<ActionResult> HacerAdmin(EditarClaimDTO editarClaimDTO)
+		{
+			var usuario = await userManager.FindByEmailAsync(editarClaimDTO.Email);
+
+			if(usuario is null)
+			{
+				return NotFound();
+			}
+
+			await userManager.AddClaimAsync(usuario, new Claim("esadmin", "true"));
+			return NoContent();
+		}
+		
+		-Se av a hacer lo mismo pero para remover admin.
+		[HttpPost("remover-admin")]
+		[Authorize(Policy = "esadmin")]
+		public async Task<ActionResult> RemoverAdmin(EditarClaimDTO editarClaimDTO)
+		{
+			var usuario = await userManager.FindByEmailAsync(editarClaimDTO.Email);
+
+			if (usuario is null)
+			{
+				return NotFound();
+			}
+
+			await userManager.RemoveClaimAsync(usuario, new Claim("esadmin", "true"));
+			return NoContent();
+		}
+		
+		-Lo primero que tenemos que hacer es hacer admin a un usuario de forma manual porque recordamos que hay una tabla de claims
+		 quee s donde se va a agudar el claim que señalamos aqui.
+		 Se puede hacer en DEV esto y luego se explora en la BBDD cómo se visualiza esto...
+		 [HttpPost("hacer-admin")]
+		// [Authorize(Policy = "esadmin")]
+		public async Task<ActionResult> HacerAdmin(EditarClaimDTO editarClaimDTO)
+		{
+			var usuario = await userManager.FindByEmailAsync(editarClaimDTO.Email);
+
+			if(usuario is null)
+			{
+				return NotFound();
+			}
+
+			await userManager.AddClaimAsync(usuario, new Claim("esadmin", "true"));
+			return NoContent();
+		}
+		
+		-Se prueba esto...
+		-Se tiene AspNetUserClaims que es la tabla de claims de usuarios que ahora no tiene nada.
+		 Se va a mandar un POST http://localhost:5065/api/usuarios/hacer-admin
+		 {
+			"email": "jgavilan@gmail.com"
+		 }
+		 
+		-En PROD para hacer admin a un usuario sin tener que quitar [Authorize(Policy = "esadmin")], pues se inserta un registro en BBDD.
+		 en AspNetUserClaims, el Id del usuario se saca de AspNetUsers.
+		 Se ve que se tenian dos tokens
+		 Se ve que el token de Felipe fue creado antes de teenr ese claim en AspNetUserClaims,
+		 por tanto el token viejo no tiene el claim de que el usuario es administrador.
+		 Se tiene que generar un token nuevo.
+		 Se hace post a login con fgavilan.
+		 Se va a ver que el token que se genera si que tiene el claim de administrador.
+		 Se puede verificar con jwt.io.
+		 Ahora se puede evr que se peude ver listado de libros porque si uso el token anterior, pues da error de Forbid, pero con el token nuevo no.
+		 
+		-Se comprueba en este endpoint: GET http://localhost:5065/api/libros y con el Authorization > Bearer.
+		-Ahora se puede descomentar el Authorize y hacer admin a quiens e quiera.
+		
+		-Solo se peude hacer admin con un token que tenga de claim esAdmin.
+		-Lo mismo para borrar a un admin...
+		-Hay que tener cuidado porque un usuario puede dejar de ser admin pero el token sino ha caducado pues ojo....
+		
+	116. Agregando una columna a la tabla de usuarios
+		-Se va a querer guardar info extra acerca de los usuarios.
+		-En AspNetusers se tiene un cjto de columnas, pero si se quiere guardar Fechanacimiento, como se cambia tabla de usuarios?
+         Se crea una nueva clase y se crea migracion
+		 Se crea la entidad usuario.
+		 Se hereda de IdentityUser. Ahora se hereda de esa clase para que sea la clase Usuario la que representa a un usuario.
+		 public class Usuario : IdentityUser
+		{
+			public DateTime FechaNacimiento { get; set; }
+		}
+		
+		-Ahora se va a ApplicationDbContext y hay que decirle que hereda de IdentityDbContext y se indica Usuario porque hay que especificar que el tipo
+		 de dato que representa a un usuario es la clase Usuario.
+		 public class ApplicationDbContext : IdentityDbContext<Usuario>
+		 
+		-Se tiene que hacer cambio en el proeycto para que en todas partes donde se usó IdentityUser, use usuario.
+		-Se da control Find y se marca EntireSolution y Se da a buscar.
+		 No se peude hacer automaticamente, porque hay lugares donde no lo puedo cambiar. Hay en migraciones pe que no se puede cambiar.
+		-Se hace todo a mano.
+		-Ojo que en el reemplazo se ignora la carpeta Migrations.
+		-Se va a hacer Add-Migration UsuarioFechaNacimiento
+		-Si da error la migracion, es porque queda por cambiar en algun lafo IdentityUser por Usuario.
+		-Despues se hace Update-Database.
+		-Se refresca Db y se evra que hay FechaNacimeinto
+		-Se crea un nuevo DTO porque quiero una nueva accion para editar los datos del usuario.
+		-Se le llama ActualizarUsuarioDTO. No se va a pedir fechaNacimiento al registrarse el usuario. Se tiene el DTO para actualizar al usuario.
+		public class ActualizarUsuarioDTO
+		{
+			public DateTime FechaNacimiento { get; set; }
+		}
+		
+		-Se va a UsuariosController y nueva accion para actualizar el user, antes de renovar-token. No tiene que ser un admin porque un usuario puede colcoar 
+		 su propia fecha de nacimiento sin ser admin por eso se pone Authorize.
+		 [HttpPut]
+		[Authorize]
+		public async Task<ActionResult> Put(ActualizarUsuarioDTO actualizarUsuarioDTO)
+		{
+			var usuario = await serviciosUsuarios.ObtenerUsuario();
+
+			if(usuario is null)
+			{
+				return NotFound();
+			}
+
+			usuario.FechaNacimiento = actualizarUsuarioDTO.FechaNacimiento;
+
+			await userManager.UpdateAsync(usuario);
+			return NoContent();
+		}
+		
+		-Con esto, se va a PostMan y se hace esto, con el authorization bearer token que corresponde al usuario propio....
+		PUT http://localhost:5065/api/usuarios
+		{
+			"fechaNacimiento": "1911-05-23"
+		}
+		
+	117. Obtener el listado de usuarios
+		-Se crea accion para obtener el listadod e users de la tabal de usuarios.
+		-En vez de depender del UserManager, se va a usar el applicationDbContext.
+		-Se crea un DTO que represente la data del usuario que quiero retornar. 
+		public class UsuarioDTO
+		{
+			public required string Email { get; set; }
+			public DateTime Fechanacimiento { get; set; }
+		}
+		
+		-Se va a UsuariosController y se mete get debajo del constructor porque le gusta que primero esten los GET que es cuestion de gustos.
+		 Solo admin ve esta data. Se inyecta el ApplicationDbContext.
+		 Se tiene asi acceso a las tablas de Identity.
+		 Tambien se inyecta IMapper.
+		 private readonly UserManager<Usuario> userManager;
+		private readonly IConfiguration configuration;
+		private readonly SignInManager<Usuario> signInManager;
+		private readonly IServiciosUsuarios serviciosUsuarios;
+		private readonly ApplicationDbContext context;
+		private readonly IMapper mapper;
+
+		public UsuariosController(UserManager<Usuario> userManager, IConfiguration configuration, 
+			SignInManager<Usuario> signInManager, IServiciosUsuarios serviciosUsuarios, ApplicationDbContext context, IMapper mapper)
+		{
+			this.userManager = userManager;
+			this.configuration = configuration;
+			this.signInManager = signInManager;
+			this.serviciosUsuarios = serviciosUsuarios;
+			this.context = context;
+			this.mapper = mapper;
+		}
+
+		[HttpGet]
+		[Authorize(Policy="esadmin")]
+		public async Task<IEnumerable<UsuarioDTO>> Get()
+		{
+			var usuarios = await context.Users.ToListAsync();
+			var usuariosDTO = mapper.Map<IEnumerable<UsuarioDTO>>(usuarios);
+			return usuariosDTO;
+		}
+		
+		-Se va a AutomapperProfiles para configurafr este mapeo.
+		CreateMap<Usuario, UsuarioDTO>();
+		
+		-Se prueba.
+		GET http://localhost:5065/api/usuarios + authorization bearer....
+		
+	118. Deslogueo
+		-En WebAPI no se tiene que trabajar con deslogueo.
+		-Cuando me logueo desde un cliente como PostMan se manda JWT y si tienes cliente como app de Angular, React, tienes JWT y si quieres 
+		 deslogegarte pues borras ese JWT.
+		 Es decir, hay que borrarlo de mi app de Android etc.
+		 No hay que tener una accion en el WebAPI para permitir el desloggeo porque el logeo se permite por JWT. Sis e quiere deslogegarse hay que deshacerse de ese JWT
+		 Si esta gaurdado en variable, se borra y listo.
+		 En MVC si que hay que crear mecanismo de deslogeo pero en WebAPI no.
+	
+	119. Introducción a CORS
+		Política de Seguridad del Mismo Origen
+		-Existe una politica de seguridad que por defecto, impide que desde un navegador en una pagina de origen X
+		 se haga una peticion HTTP a un endpoint de un origen G. 
+		 Esto quiere decir que si estamos usando nuestro navegador en una pagina midominio.com e intentamos hacer una peticion HTTP
+		 via JS a endpoint de dominnio midominio2.com, entonces se obtendra un error. El nombre de la politica de seguridad es 
+		 poitica de seguridad del mismo origen. Esto es una politica de seguridad de navegadores.
+		 No se va a tener el mismo problema si se hace una peticion HTTP desde una app movil, desde un servidor web, desde postman....
+		-La politica se aplica a nivel del origen y no solo del dominio. 
+		 Un origen es la combinacion de Esquema URI (http o https) + nombre del host + numero de puerto.
+		-Para estos fines, las siguientes URLs que se vana  mostrar son de origen distinto a miDominio. com
+		ORIGEN                         | Razon de que sea diferente
+		http://www.miDominio.com       | El subdominio WWW
+		https://www.miDominio.com      | El protocolo HTTPS
+		http://www.miDominio.com:1234  | El puerto 1234
+		http://www.miDominio.net       | El dominio es diferente
+		
+		-La razon de esta politica es prevenir el acceso de un script malicioso en una pagina a los recursos de otra pagina.
+		-Hay ocasioens en las que se va a querer que se hagan peticiones HTTP sobre nuestros endpoints 
+		 aun cuando estos vengan de otros origenes. Suele pasar mucho en WebAPI, ayq ue se tendra un servidor web detras 
+		 de un origen disitnto que nuestra pagina web.
+		 Por ejemplo, si se tiene un Single Page Application, es decir, una pagina de react, Angular, etc.
+		 
+		-Se peude habilitar el intercambio de recursos de origen cruzado (CORS) para permitir peticiones
+		 desde otros origenes hacia nuetsro WebAPI.
+		-Priemro se quiere ver que habra un error de CORS al intentar acceder directamente a nuestro WebAPI.
+	
+	120. Experimientando un error de CORS
+		-Se va a crear una simple pagina HTML para probar nuestro WebAPI.
+		-La idea es que se configurara un servidor difernete al nuestro pues por politica de CORS, no se nos 
+		 dejara consumir e WebAPI desde el documento HTML. Se peude usar VS Code.
+		 Se usa VS Code para levantar servidor Web.
+		 Se abre el proyecto con VS Code y se crea un fichero: ejemplo-cors.html
+		-Se tiene un script que se va a ejecutar al momento de que se cargue la pagina.
+		-Se va a hacer una epticion HTML al endpoint de autores: https://localhost:5065/api/autores
+		-Se descarga una extension que se llama Live Server que eprmite levantar servidor web.
+		-Boton derecho en el HTML y abrir con Live Server.
+		-Si se le da al F12 da Connection Refused porque el WebAPI está abajo.
+		-Se levanta webAPI y da error de CORS. No se peude hacer una peticion a la pagina de webAPI porque son puertos diferentes y hay que configurar politica de CORS para poder comunicarse.
+		
+	121. Configurando CORS en ASP.NET
+		-Al intentar comunicarnos con nuetsor webAPI desde doc HTML hay error de CORS que es Cros Origin Resource Sharing o intercambio de recursos de origen cruzado y esos mecanismos 
+		 impiden que desde origenes desconocidos a nuestros webAPI se peudan comunicar con nosotros.
+		 Si quiero poder comunicarme con este WebAPI desde el origen...
+		
+		-Se va a Program y se habilita CORS.
+		-Por ahora se pone AllowAnyOrigin que desde cualquier origen se pueden comunicar con nosotros y se permite cualquier método
+		 y se permite cualquier cabecera.
+		builder.Services.AddCors(opciones =>
+		{
+			opciones.AddDefaultPolicy(opcionesCORS =>
+			{
+				opcionesCORS.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+			});
+		});
+		
+		-Se va a Middlewares para habilitar CORS: app.UseCors();
+		-Se hace Ctrl + F5 y se obtiene la info del endpoint de antes de autores.
+		-No es necesario abrir WebAPI para que desde cualqueir origen se peudan comunicar con nosotros. Igual se puede eprmitir solo un listado de origenes.
+		 Se va al appsettings.Development.json y se mete origenesPermitidos y es algo que se quiere colocar en un proveedor de configuracion
+		 porque es algo que se peude cambair para diferentes ambientes.
+		 Se mete arreglo. La verificación de CORS se hace del string completo asiq ue cuidado con meter / al final de la URL.
+		 El navegador manda el origen sin la barra: "origenesPermitidos": [ "http://127.0.0.1:5500" ]
+		
+		-Se mete esto en Program.cs
+		var origenesPermitidos = builder.Configuration.GetSection("origenesPermitidos").Get<string[]>();
+		
+		-Se cambia lo de allowAnyOrigins con esto.
+		//área de servicios
+		var origenesPermitidos = builder.Configuration.GetSection("origenesPermitidos").Get<string[]>()!; => No va a ser nulo !
+
+		builder.Services.AddCors(opciones =>
+		{
+			opciones.AddDefaultPolicy(opcionesCORS =>
+			{
+				opcionesCORS.WithOrigins(origenesPermitidos).AllowAnyMethod().AllowAnyHeader();
+			});
+		});
+		
+		-Si se cambia el pueerto de origenespermitidos, pues nos volverá a dar problemas.
+		
+		
+	122. Retornando cabeceras personalizadas - CORS
+		-Esto va a ser util cuando se tiene info que queremos transimitir al cliente que no queremos colocar en el cuerpo de la respuesta
+		 HTTP porque quizas no es parte de la respuesta sino que es metadata.
+		-Se va a suponer que se quiere retornar una cabecera personalizada para transmitirle esa informacion que no e sparte del cuerpo al cliente.
+		 Por defecto dicha cabecera no se muestra al code de JS.
+		-Se mete middleware. Se mete await next(); para continuar con la ejecucion del resto de los middlewares.
+		app.Use(async (contexto, next) =>
+		{
+			contexto.Response.Headers.Append("mi-cabecera", "valor");
+			await next();
+		});
+		
+		-El middleware se va a ejecutar antes cualquier epticion HTTP que haga.
+		-Se peude hacer a login una peticion y en la cabecera se tiene "mi-cabecera": "valor".
+		-Si intento acceder a esa cebecera desde el documento HTML, usando JS no se nos va a mostrar.
+		const cabeceras = Array.from(respuesta.headers.entries());
+        console.log(cabeceras);
+		
+		-Por politica de CORS, no se permite que los navegadores peudan acceder a esa info personalziada. hay que configurarlo
+		-Para que se accesible en la config del CORS, se añade esto:
+		//área de servicios
+		var origenesPermitidos = builder.Configuration.GetSection("origenesPermitidos").Get<string[]>()!;
+
+		builder.Services.AddCors(opciones =>
+		{
+			opciones.AddDefaultPolicy(opcionesCORS =>
+			{
+				opcionesCORS.WithOrigins(origenesPermitidos).AllowAnyMethod().AllowAnyHeader()
+				.WithExposedHeaders("mi-cabecera");
+			});
+		});
+		
+		-Hay que exponer la cabecera....
+	
+	123. Entendiendo la encriptación
+		-Hay funcion f que transofrma numero de la siguiente forma.
+		F(2) = 7
+		F(5) = 16
+		
+		-Si queremos una funcion G que revierta la operacion de F, que hacemos?
+		 Hay que conocer lo que hace la funcion F para realizar la reversion. Hay que conocer el screto de la funcion F para poder tomar 
+		 el numero resultante y obtener el numero original.
+		-Hay funcion F la cual realiza una transformacion sobre un parametro.
+		 Ademas, podemos deducir valor incial a aprtir del rdo si se conoce el secreto de funcion inicial.
+		 
+		-La encriptacion es un proceso que le aplicamos a un mensaje para codifciarlod e tal modo que solo personas autorizadas
+		 peudan conocer el mensaje original. Al mensaje original que se va a encriptar se le llama texto plano.
+		-Al rdo del proceso de encriptacion se le llama texto cifrado.
+		-F(2) = 7, el 2 es el texto plano y el 7 es el tetxo cifrado.
+		-La encriptacion busca proteger el tetxo plano. La idea es que una persona si ve el texto cifrado, le sea virtualmente imposible dedudcir el texto plano correpsondiente.
+		-Un algoritmo de encriptacion es tan bueno como el nivel de dificultad que le provoque a un usuario no autorizado recobrar el texto plano a partir del texto cifrado.
+		-En el caso de nuestra funcion f, el algoritmo de encriptacion no es bueno porque solo toma numero * 3 y suma uno y no es dificil de deducir.
+		-En mund real, existen algoritmos de encriptacion avanzados y ato nivel de eficacia.
+		-Para estos algoritmos lo tipico es usar una llave la que permite recobrar el tetxo plano a partir del cifrado. Es imprescindible proteger la llave
+		 de personas no autorizadas.
+		-La llave tieende a ser string aleatorio tremendamente largo.
+		-Una manera deproteger esta llave es colocandola en un sitio seguro como vble de ambiente.
+	
+	124. Encriptacion en ASP.NET
+		-Para encriptar en ASP.NET Core se ofrece el servicio de proteccion de datos.
+		-Se puede usar IDataProtectionProvider y IDataProtector. El ultimo es el que se encarag de encriptar y desencriptar mensajes, el otro se encarga de crear IDataProtector.
+		-En Program, Servicios, se añade: builder.Services.AddDataProtection();
+		-Cone sto se tiene la configuracion minima necesaria para realziare ncriptacion a traves de servicios que hemos comentado.
+		-Se crea controlador para no colocar codigo de ejemplo inncesario.
+		-Se le llama SeguridadController.
+		-Al CreateProetctor se le pasa un string de proposito que se peude pensar como parte de la llave del algoritmo de encriptacion que vamos a usar.
+		-Sino se tiene el string de proposito, ni siquiera se peude desencriptar.
+		-Es importante usar un string de proposito unico a menos a nivel de la app para asi tener una mayor proteccion de datos para que asi lo que yo encripte 
+		 desde esta clase, no se pueda desencriptar desde otra clase, agregando una capa mas de proteccion de datos.
+		-Ademas, dependiendo del proposito de la encriptacion, es posible que el string se quiera tener oculto, porque si encripto trahetas de credito, nos e quiere
+		 que peresona entre a ese string de propsoito. Se mete el nombre de la clase, con eso te aseguras de que no se peuda desencriptar lo que yo encripto.
+		-El string de proposito no es la llave sino parte de ella.
+		-ASP.NET Core genera unas llaves que por defecto estan ocultas, de tal forma que quien no tenga esas llaves no peude desencriptar el texto cifrado.
+		-Se meten dos acciones GET. Una toma un texto plano, lo cifra y devuelve.
+		[HttpGet("encriptar")]
+		public ActionResult Encriptar(string textoPlano)
+		{
+			string textoCifrado = protector.Protect(textoPlano);
+			return Ok(new { textoCifrado });
+		}
+
+		[HttpGet("desencriptar")]
+		public ActionResult Desencriptar(string textoCifrado)
+		{
+			string textoPlano = protector.Unprotect(textoCifrado);
+			return Ok(new { textoPlano });
+		}
+		
+		-Se va a postman y se prueba: GET http://localhost:5065/api/seguridad/encriptar?textoPlano=Felipe; params => textoPlano: Felipe.
+		-Aunque se use tetxoPlano el algoritmo de encriptacion cada vez que se da a enviuar manda un string diferente. Al final, se tiene otro tetxo cifrado. Es dificil descubir texto plñano
+		 a partir del cifrado.
+		-Ahora se prueba desenciptar. Si se manda Felipe no se tiene string de base64 y daria error.
+		-Me llevo el chorro: GET  http://localhost:5065/api/seguridad/desencriptar
+		params => textoCifrado: CfDJ8I5OtKyks09OrG0siKLxsm2dCMcHbZVHNf177CgXGOEQq0nW0b3jl31kDrJmi8pNJ65J93X6tXsJA8R0mmZxlxU0Rc7o1EFs31uD8jPuSGC14-uQekIb24H2NuwNQivE7w
+		
+		-Te doy tetxo cifrado y ahora solo peudes usarlo por 1h, 1 dia....
+		-Se crea protector limitado por tiempo en constructor del controller.
+		private readonly IDataProtector protector;
+		private readonly ITimeLimitedDataProtector protectorLimitadoPorTiempo;
+
+		public SeguridadController(IDataProtectionProvider protectionProvider)
+		{
+			protector = protectionProvider.CreateProtector("");
+			protectorLimitadoPorTiempo = protector.ToTimeLimitedDataProtector();
+		}
+		
+		-Mismas peticiones, limitado por tiempo.
+		[HttpGet("encriptar-limitado-por-tiempo")]
+		public ActionResult EncriptarLimitadoPorTiempo(string textoPlano)
+		{
+			string textoCifrado = protectorLimitadoPorTiempo.Protect(textoPlano, lifetime: TimeSpan.FromSeconds(30));
+			return Ok(new { textoCifrado });
+		}
+
+		[HttpGet("desencriptar-limitado-por-tiempo")]
+		public ActionResult DesencriptarLimitadoPorTiempo(string textoCifrado)
+		{
+			string textoPlano = protectorLimitadoPorTiempo.Unprotect(textoCifrado);
+			return Ok(new { textoPlano });
+		}
+		
+		-Se prueba en postman lo de los 30sg. Al de 30sg, el payload ha expirado.
+	
+	125. Ejemplo Práctico de encriptación limitada por tiempo - Links que expiran
+		-Se da uso a encriptacion limitada por tiempo con un ejemplo.
+		-Se tiene endpoints que estan protegidos.
+		-Si se quiere dar acceso a  un endpoint a una persona por tiempo limuitado. Esto es generar un token que expira que es texto cifrado.
+		 De esta manera, token valido solo por tiempo que se indique.
+		 En vida real puedes querer compartir fichero o lo que sea y esa invitacion se quiere que expire en el tiempo. No se quiere que esa invitacion quede abierta
+		 un año o dos en el futuro, que se robe la invitacion etc y peuda acceder a recurso protegido. Asi usando el cifrado por tiempo, 
+         se restringe acceso a un recurso.
+         Por que usar estas herramientas y no gaurdar en una bbdd el tiempo de vida de accesoa  un recurso?
+         Si se hace con un token peus es que da mas escalabilidad.
+         Asi no se depende de conexiona  bbd y nos los podemos ahorrar y nuestro sistema peude manejar mas cantidad de usuarios.
+         Pues esa oepracion del cifrado limitado por tiempo es en memoria.
+		
+		-Se va a LibrosController que se tiene el authorize de la lista GET de libros y se quiere generar un link que sea accesible para unas personas durante un tiempo limitado.
+		 Va a ser una hora, unos minutos, etc...
+		-Se inyecta esto en la clase.
+		private readonly ApplicationDbContext context;
+		private readonly IMapper mapper;
+		private readonly ITimeLimitedDataProtector protectorLimitadoPorTiempo;
+
+		public LibrosController(ApplicationDbContext context, IMapper mapper, IDataProtectionProvider protectionProvider) {
+			this.context = context;
+			this.mapper = mapper;
+			protectorLimitadoPorTiempo = protectionProvider.CreateProtector("LibrosController").ToTimeLimitedDataProtector();
+		}
+		
+		-Se crea accion para obtener el token. se crea url para la ruta que permite pasar un token para obteenr listado de libros.
+		[HttpGet("listado/obtener-token")]
+		public ActionResult ObtenerTokeListado()
+		{
+			var textoPlano = Guid.NewGuid().ToString();
+			var token = protectorLimitadoPorTiempo.Protect(textoPlano, lifetime: TimeSpan.FromSeconds(30));
+			var url = Url.RouteUrl("ObtenerListadoLibrosUsandoToken", new { token }, "https");
+			return Ok(new { url });
+		}
+		
+		-Se crea otro metodo. Es igual que el otro GET solo que el viejo esta protegido y puede ser usado por admins y este nuevo 
+		 puede ser usado por cualquier persona que tenga el token.
+		 Si ya apsa el tiempo de expiracion daba error por lo que se mete el try-catch.
+		 Lo que se quiere es generar un link por tiempo definido que ava  permitir a una eprsona acceder a un recurso protegido.
+		 Se pone 30sg, ero en vida real es un dia, una semana, etc.
+		 El token que se genera se lo podemos dar a una persona y peude usarlo por un tiempo limitado 
+		 y cuando expire, pues expira..Como no se accede a la BBDD, pues esto es mas escalable y eficiente.
+		[HttpGet("listado/{token}", Name = "ObtenerListadoLibrosUsandoToken")]
+		[AllowAnonymous]
+		public async Task<ActionResult> ObtenerListadoLibrosUsandoToken(string token)
+		{
+			try
+			{
+				protectorLimitadoPorTiempo.Unprotect(token);
+			}
+			catch
+			{
+				ModelState.AddModelError(nameof(token), "El token ha expirado");
+				return ValidationProblem();
+			}
+			var libros = await context.Libros.ToListAsync();
+			var librosDTO = mapper.Map<IEnumerable<LibroDTO>>(libros);
+			return Ok(librosDTO);
+		}
+		
+		-Se va a postman: GET http://localhost:5065/api/libros/listado/obtener-token => En el Auth bearer Token hay que meter el token de un admin.
+
+	126. Llaves de proteccion de datos
+		-Los algoritmos de encriptacion mas comunes usan una llave y los procesos dados por ASp.NET Core  no son excepcion.
+		-Hasta ahora, nos hemos mantenido hablando del string de proposito. Sin embargo, es improtante notar que el framework va a manejar la llaves por ti.
+		 a no ser que decidas sobreescribri ciertas configruaciones por defecto desde tiempod e vida de una llave hasta donde
+         guardan las llaves sus configuraciones que podemos personalizar si lo queremos.
+		-Si webAPI se coloca en un App Service de Azure, llaves se colocan por defecto en carpeta en els ervidor. 
+		-Una consideracione s que los disitntos slots que son como diferentes versiones de la app, tienen llaves distintas. Si hay instancias diferentes
+		 de una app en dos servidores diferentes, tienen llaves diferneets que peuden traer situacioens inesperadas como que 
+		 lo que encriptas en un slot no peudas desencriptarlo en otro servidor. Es problematico a veces, sobre todo si manejas a manejar los slots 
+		 de manera transparente para usuario.
+		-Solucione s colcoar las llaves en un lugar externo como Azure Blob Storage 
+		-Si app esta instalada en ISS las llaves seran persistidas en uns ervicio HKLM.
+		-El framework verifica en donde se encuentra la app y trata de buscar mejor manera de guardar las llaves.
+		-Es importante  que se entienda lo que el framework va a hacer con las llaves en acso de que se necesite sobreescribir el comportamiento por defecto para que se ajuste a nuestras necesidades.
+		
+	127. Entendiendo Hashing
+		-Encrptar es codificar un mensaje de tal foma que perosnas autorizadas pudieran decodificar el mensaje haciendo uso se llave secreta.
+		-Hay otor proceso de decodificacion por el cual a diferencia de la encriptacion no permite obtener el tetxo plano original.
+		-A esto se le llama Hash.
+		
+		-Una funcion hash es un algoritmo el cual transforma un mensaje de tal manera que es virtualmente imposible de descifrar revirtiendo el proceso.
+		-Al rdo de una funcion hash se le llama hash.
+		-Un uso practico de una funcion hash es para laverificacion de una Password.
+		-Cuando te registras en app web, sueles proveer un email y password y lo correcto desde punto de vista de seguridad informatic aesque pagina no guarde 
+		 tetxo plano del password, sino un hasch, es decir, una fucnion hash al texto  plano y guarde rdo, de tal mdoo que sea virtualmente imposible descifrar el texto original.
+		-Es importante porque password es info confidencial del user.
+		-Sino se guarda password en texto plano sin hash resultante como se valida login de user?
+		 Cuando user intente logearse, nos va a mandar un correo y password y se debe tomar ese password, aplciar funcion hash y comaprar el hash con el gaudrado en bbdd, asis e peude autenticar ausuario sin
+		 necesidad de conocer texto plano correspondiente a su passwor.
+		
+		-Existen ciertas consideraciones a la hora de implementar funcionalidad con Hash.
+		-Como uso de SAL. Una sal es un valor aleatorio que se anexa al texto plano al cual le queremos aplicar la funcion hash.
+		-Esto protege nuestros datos de ciertos ataques de diccionario.
+		-Estas consideraciones de seguridad estan fuera del alcance de este curso.
+		-Queremso ver como tomar un string y aplicar funcion hash en ASP:NET Core.
+		-Se usa impementacion del algoritmo Pbkdf2 que ofrece el framework.
+		-Se sua sal aleatoria que permite que incluso hashes realizados al mismo texto plano, den rdos distitnos.
+		 Si se va a usar ahshes para guardarlos en la bbdd, recuerda que sal tambien se guarda para hacer la validacion apropiada.
+		-No hay inconveniente en guardar la sal en texto plano en bbdd porque la utilidad de la sal es hacer dificil 
+		 los ataques de diccionario. sin embargo, es importante no eneseñar la sal a nadie y menos a ausuarios no autorizados.
+	
+	128. Hashes en ASP.NET Core
+		-Se crea nuevo DTO.
+		public class ResultadoHashDTO
+		{
+			public required string Hash { get; set; }
+			public required byte[] Sal { get; set; }
+		}
+		
+		-Vamos a Servicios e implementamos el algortimo.
+		-10K itereacioens para que la funcion se ejecute 10K veces para tener hash mas dificl de romepr.
+		-Se pasan 256 bits para definri tamaño de hash
+		public class ServicioHash
+		{
+			public ResultadoHashDTO Hash(string input, byte[] sal)
+			{
+				string hashed = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+					password: input,
+					salt: sal,
+					prf: KeyDerivationPrf.HMACSHA1,
+					iterationCount: 10_000,
+					numBytesRequested: 256 / 8
+					));
+
+				return new ResultadoHashDTO
+				{
+					Hash = hashed,
+					Sal = sal
+				};
+			}
+		}
+		
+		-Se mete otra funcion para que no sea obligatorio tener que apsar siempre una sal y tener que inventarla, creo un metodo que nor eciba una sal.
+		public ResultadoHashDTO Hash(string input)
+		{
+			var sal = new byte[16];
+			using (var rng = RandomNumberGenerator.Create())
+			{
+				rng.GetBytes(sal);
+			}
+			return Hash(input, sal);
+		}
+		
+		-Se extrae interfaz de la clase y se mete en un archivo con Ctrl + .
+		
+		-Se va a Program para añadir este servicio. Se pone Transient porque no comparto este estado.
+		builder.Services.AddTransient<IServicioHash, ServicioHash>();
+		
+		-Se va a usar en SeguridadController. Se inyecta.
+		private readonly IDataProtector protector;
+		private readonly ITimeLimitedDataProtector protectorLimitadoPorTiempo;
+		private readonly IServicioHash servicioHash;
+
+		public SeguridadController(IDataProtectionProvider protectionProvider, IServicioHash servicioHash)
+		{
+			protector = protectionProvider.CreateProtector("");
+			protectorLimitadoPorTiempo = protector.ToTimeLimitedDataProtector();
+			this.servicioHash = servicioHash;
+		}
+		
+		-Se mete accion. hash1 y hash2 son sales diferentes que se geenran aleatorias.
+		-hash3 tiene la sal de hash2 para evr que asi se puede mandar la misma sal para generar el mismo hash y por tanto 
+		 poderr ealziar comparacion de passwords.
+		[HttpGet("hash")]
+		public ActionResult Hash(string textoPlano)
+		{
+			var hash1 = servicioHash.Hash(textoPlano);
+			var hash2 = servicioHash.Hash(textoPlano);
+			var hash3 = servicioHash.Hash(textoPlano, hash2.Sal);
+			var resultado = new { textoPlano, hash1, hash2, hash3 };
+			return Ok(resultado);
+		}
+		
+		-Se prueba en Postman: GET http://localhost:5065/api/seguridad/hash?textoplano=felipe
+		 Entre hash1 y hash2 se tiene diferente sal y ahsh es disitnto a pesar de que
+		 es mismo tetxco felipe. Esto evita ataque de diccioanrio que si alguien incluso sabiendo algortimo que uso,
+		 no va a poder de forma rapida hacer ataque de fuerza bruta para saber a que texto plano le corresponde un hash.
+		
+		-En hash3, tenemos mismo hash.
+		-En nuestro caso, Identity lo hace ya por nosotros. Si se va a usuarios, en  passwordHash,  lo hace...
+		
+	129. Resumen
+		-Se aprendio aspectos de Segrudiad de ASP.NET Core.
+		-Se ha vsito que con identity se peyden tener muchas de las caracteristicas de un sistema de usuarios de una manera sencilla.
+		-JWT es un string qe nos permitem darle un token al usuario de forma que este peuda autenticarse una vez que nos de usuario y password.
+		-Los claims son infos del usuario en loq ue se peude confiar.
+		-CORS mecanismoq eue vita que desde navegadores web se puedan realziar epticiones HTTP a nuestro webAPI usando code de JS
+		 desde lugares no autorizados.
+		-Encriptacion permite cifrar texto de manera descifrable pro alguien que tenga llave secreta.
+		-hashing  permite cifrar tetxo de forma que se indescifrable.
+	
+
+Sección 8: Escenarios Avanzados
+	130. Introducción => No dice anda especial.
+	131. LImpiar
+		-Se va a limpiar la app.
+		
+		
+		
+		
+		
+		
+		
+				
+		  
+				
+		 
+		
+		
+		 
+		
+
 		
 		
 		

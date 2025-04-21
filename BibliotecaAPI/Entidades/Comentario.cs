@@ -13,5 +13,5 @@ public class Comentario
     public Libro? Libro { get; set; }
     public List<Comentario> Comentarios { get; set; } = new List<Comentario>();
     public required string UsuarioId { get; set; }
-    public IdentityUser? Usuario { get; set; }
+    public Usuario? Usuario { get; set; }
 }

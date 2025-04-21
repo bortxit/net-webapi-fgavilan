@@ -1,11 +1,10 @@
-using BibliotecaAPI;
 using BibliotecaAPI.Datos;
+using BibliotecaAPI.Entidades;
 using BibliotecaAPI.Servicios;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.Text.Json.Serialization;
 
 namespace BibliotecaAPI
 {
@@ -23,6 +22,17 @@ namespace BibliotecaAPI
             builder.Configuration.AddInMemoryCollection(diccionarioConfiguraciones!);
 
             //área de servicios
+            var origenesPermitidos = builder.Configuration.GetSection("origenesPermitidos").Get<string[]>()!;
+
+            builder.Services.AddCors(opciones =>
+            {
+                opciones.AddDefaultPolicy(opcionesCORS =>
+                {
+                    opcionesCORS.WithOrigins(origenesPermitidos).AllowAnyMethod().AllowAnyHeader()
+                    .WithExposedHeaders("mi-cabecera");
+                });
+            });
+
             builder.Services.AddOptions<PersonaOpciones>()
                 .Bind(builder.Configuration.GetSection(PersonaOpciones.Seccion))
                 .ValidateDataAnnotations()
@@ -41,13 +51,14 @@ namespace BibliotecaAPI
 
             builder.Services.AddDbContext<ApplicationDbContext>(opciones => opciones.UseSqlServer("name=DefaultConnection"));
 
-            builder.Services.AddIdentityCore<IdentityUser>()
+            builder.Services.AddIdentityCore<Usuario>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
-            builder.Services.AddScoped<UserManager<IdentityUser>>();
-            builder.Services.AddScoped<SignInManager<IdentityUser>>();
+            builder.Services.AddScoped<UserManager<Usuario>>();
+            builder.Services.AddScoped<SignInManager<Usuario>>();
             builder.Services.AddTransient<IServiciosUsuarios, ServiciosUsuarios>();
+            builder.Services.AddTransient<IServicioHash, ServicioHash>();
 
             builder.Services.AddHttpContextAccessor();
 
@@ -65,9 +76,21 @@ namespace BibliotecaAPI
                 };
             });
 
+            builder.Services.AddAuthorization(opciones =>
+            {
+                opciones.AddPolicy("esadmin", politica => politica.RequireClaim("esadmin"));
+            });
+
             var app = builder.Build();
 
             // área de middlewares
+            app.Use(async (contexto, next) =>
+            {
+                contexto.Response.Headers.Append("mi-cabecera", "valor");
+                await next();
+            });
+
+            app.UseCors();
 
             app.MapControllers();
 

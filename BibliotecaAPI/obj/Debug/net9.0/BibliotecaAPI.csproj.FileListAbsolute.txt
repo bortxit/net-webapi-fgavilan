@@ -173,3 +173,4 @@ C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Microso
 C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Microsoft.Extensions.Primitives.dll
 C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\System.Formats.Asn1.dll
 C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\System.Text.Json.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\obj\Debug\net9.0\BibliotecaAPI.sourcelink.json

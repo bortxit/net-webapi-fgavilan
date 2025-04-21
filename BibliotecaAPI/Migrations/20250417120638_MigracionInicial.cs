@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BibliotecaAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class SistemaDeUsuarios : Migration
+    public partial class MigracionInicial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -48,6 +48,34 @@ namespace BibliotecaAPI.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Autores",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Nombres = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    Apellidos = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    identificacion = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Autores", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Libros",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Titulo = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Libros", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -156,6 +184,64 @@ namespace BibliotecaAPI.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "AutoresLibros",
+                columns: table => new
+                {
+                    AutorId = table.Column<int>(type: "int", nullable: false),
+                    LibroId = table.Column<int>(type: "int", nullable: false),
+                    Orden = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AutoresLibros", x => new { x.AutorId, x.LibroId });
+                    table.ForeignKey(
+                        name: "FK_AutoresLibros_Autores_AutorId",
+                        column: x => x.AutorId,
+                        principalTable: "Autores",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AutoresLibros_Libros_LibroId",
+                        column: x => x.LibroId,
+                        principalTable: "Libros",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Comentarios",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Cuerpo = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FechaPublicacion = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LibroId = table.Column<int>(type: "int", nullable: false),
+                    UsuarioId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ComentarioId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Comentarios", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Comentarios_AspNetUsers_UsuarioId",
+                        column: x => x.UsuarioId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Comentarios_Comentarios_ComentarioId",
+                        column: x => x.ComentarioId,
+                        principalTable: "Comentarios",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Comentarios_Libros_LibroId",
+                        column: x => x.LibroId,
+                        principalTable: "Libros",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -194,6 +280,26 @@ namespace BibliotecaAPI.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AutoresLibros_LibroId",
+                table: "AutoresLibros",
+                column: "LibroId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comentarios_ComentarioId",
+                table: "Comentarios",
+                column: "ComentarioId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comentarios_LibroId",
+                table: "Comentarios",
+                column: "LibroId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comentarios_UsuarioId",
+                table: "Comentarios",
+                column: "UsuarioId");
         }
 
         /// <inheritdoc />
@@ -215,10 +321,22 @@ namespace BibliotecaAPI.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "AutoresLibros");
+
+            migrationBuilder.DropTable(
+                name: "Comentarios");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
+                name: "Autores");
+
+            migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Libros");
         }
     }
 }
