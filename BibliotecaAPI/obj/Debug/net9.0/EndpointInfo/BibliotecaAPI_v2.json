@@ -1,0 +1,27 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Biblioteca API",
+    "description": "Este es un web api para trabajar con datos de autores y libros",
+    "contact": {
+      "name": "Felipe Gavilán",
+      "url": "https://gavilan.blog",
+      "email": "felipe@hotmail.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/license/mit/"
+    },
+    "version": "v2"
+  },
+  "paths": { },
+  "components": {
+    "securitySchemes": {
+      "Bearer": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  }
+}

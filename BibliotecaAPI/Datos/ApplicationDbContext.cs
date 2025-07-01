@@ -14,11 +14,14 @@ namespace BibliotecaAPI.Datos
         {
             base.OnModelCreating(modelBuilder);
             // modelBuilder.Entity<Autor>().Property(x=>x.Nombre).HasMaxLength(150);
+
+            modelBuilder.Entity<Comentario>().HasQueryFilter(b => !b.EstaBorrado);
         }
 
         public DbSet<Autor> Autores { get; set; }
         public DbSet<Libro> Libros { get; set; }
         public DbSet<Comentario> Comentarios { get; set; }
         public DbSet<AutorLibro> AutoresLibros { get; set; }
+        public DbSet<Error> Errores { get; set; }
     }
 }

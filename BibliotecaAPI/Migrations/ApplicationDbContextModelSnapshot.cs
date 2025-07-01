@@ -35,6 +35,10 @@ namespace BibliotecaAPI.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("Foto")
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(max)");
+
                     b.Property<string>("Nombres")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -79,6 +83,9 @@ namespace BibliotecaAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("EstaBorrado")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("FechaPublicacion")
                         .HasColumnType("datetime2");
 
@@ -98,6 +105,27 @@ namespace BibliotecaAPI.Migrations
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("Comentarios");
+                });
+
+            modelBuilder.Entity("BibliotecaAPI.Entidades.Error", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MensajeDeError")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StackTrace")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Errores");
                 });
 
             modelBuilder.Entity("BibliotecaAPI.Entidades.Libro", b =>

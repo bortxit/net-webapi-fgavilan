@@ -17,6 +17,8 @@ public class AutoMapperProfiles: Profile
                 config => config.MapFrom(autor => MapearNombreYApellidoAutor(autor)));
 
         CreateMap<AutorCreacionDTO, Autor>();
+        CreateMap<AutorCreacionConFotoDTO, Autor>()
+            .ForMember(ent => ent.Foto, config => config.Ignore());
         CreateMap<Autor, AutorPatchDTO>().ReverseMap();
 
         CreateMap<AutorLibro, LibroDTO>()

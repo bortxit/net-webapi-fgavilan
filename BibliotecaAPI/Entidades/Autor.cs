@@ -1,4 +1,5 @@
 ﻿using BibliotecaAPI.NewFolder;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 namespace BibliotecaAPI.Entidades;
@@ -15,5 +16,7 @@ public class Autor
     [PrimeraLetraMayuscula]
     public required string Apellidos { get; set; }
     public string? identificacion { get; set; }
+    [Unicode(false)]
+    public string? Foto { get; set; }
     public List<AutorLibro> Libros { get; set; } = [];
 }

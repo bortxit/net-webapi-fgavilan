@@ -13,10 +13,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace BibliotecaAPI.Controllers;
+namespace BibliotecaAPI.Controllers.V1;
 
 [ApiController]
-[Route("api/usuarios")]
+[Route("api/v1/usuarios")]
 public class UsuariosController : ControllerBase
 {
     private readonly UserManager<Usuario> userManager;
@@ -26,7 +26,7 @@ public class UsuariosController : ControllerBase
     private readonly ApplicationDbContext context;
     private readonly IMapper mapper;
 
-    public UsuariosController(UserManager<Usuario> userManager, IConfiguration configuration, 
+    public UsuariosController(UserManager<Usuario> userManager, IConfiguration configuration,
         SignInManager<Usuario> signInManager, IServiciosUsuarios serviciosUsuarios, ApplicationDbContext context, IMapper mapper)
     {
         this.userManager = userManager;
@@ -38,7 +38,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Policy="esadmin")]
+    [Authorize(Policy = "esadmin")]
     public async Task<IEnumerable<UsuarioDTO>> Get()
     {
         var usuarios = await context.Users.ToListAsync();
@@ -80,7 +80,7 @@ public class UsuariosController : ControllerBase
 
         if (usuario == null)
         {
-            return RetornarLoginIncorrecto(); 
+            return RetornarLoginIncorrecto();
         }
 
         var resultado = await signInManager.CheckPasswordSignInAsync(usuario, credencialesUsuarioDTO.Password!, lockoutOnFailure: false);
@@ -101,7 +101,7 @@ public class UsuariosController : ControllerBase
     {
         var usuario = await serviciosUsuarios.ObtenerUsuario();
 
-        if(usuario is null)
+        if (usuario is null)
         {
             return NotFound();
         }
@@ -135,7 +135,7 @@ public class UsuariosController : ControllerBase
     {
         var usuario = await userManager.FindByEmailAsync(editarClaimDTO.Email);
 
-        if(usuario is null)
+        if (usuario is null)
         {
             return NotFound();
         }
@@ -175,6 +175,10 @@ public class UsuariosController : ControllerBase
 
         var usuario = await userManager.FindByEmailAsync(credencialesUsuarioDTO.Email);
         var claimsDB = await userManager.GetClaimsAsync(usuario!);
+        foreach (var claim in claimsDB)
+        {
+            Console.WriteLine($"Claim: {claim.Type} - {claim.Value}");
+        }
 
         claims.AddRange(claimsDB);
 

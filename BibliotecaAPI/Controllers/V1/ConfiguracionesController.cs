@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-namespace BibliotecaAPI.Controllers;
+namespace BibliotecaAPI.Controllers.V1;
 
 [ApiController]
-[Route("api/configuraciones")]
+[Route("api/v1/configuraciones")]
 public class ConfiguracionesController : Controller
 {
     private readonly IConfiguration configuration;

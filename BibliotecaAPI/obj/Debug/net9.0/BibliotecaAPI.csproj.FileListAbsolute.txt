@@ -174,3 +174,17 @@ C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Microso
 C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\System.Formats.Asn1.dll
 C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\System.Text.Json.dll
 C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\obj\Debug\net9.0\BibliotecaAPI.sourcelink.json
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Microsoft.OpenApi.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\obj\Debug\net9.0\BibliotecaAPI.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Azure.Storage.Blobs.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Azure.Storage.Common.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\System.IO.Hashing.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\BibliotecaAPI.staticwebassets.runtime.json
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\System.Linq.Dynamic.Core.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Microsoft.AspNetCore.OutputCaching.StackExchangeRedis.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Microsoft.Extensions.Caching.StackExchangeRedis.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\Pipelines.Sockets.Unofficial.dll
+C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Debug\net9.0\StackExchange.Redis.dll
