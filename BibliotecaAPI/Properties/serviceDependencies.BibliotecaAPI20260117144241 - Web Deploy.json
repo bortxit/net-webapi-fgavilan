@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "storage1": {
+      "ignored": "true",
+      "type": "storage"
+    },
+    "mssql1": {
+      "serviceConnectorResourceId": "/subscriptions/[parameters('subscriptionId')]/resourcegroups/[parameters('serviceConnectorResourceGroupName')]/providers/Microsoft.Web/sites/BibliotecaAPI20260117144241/providers/Microsoft.ServiceLinker/linkers/ConnectionStringsDatefaultConnection_A8001186E3",
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourcegroups/[parameters('resourceGroupName')]/providers/Microsoft.Sql/servers/bibliotecaapidbserver11/databases/BibliotecaAPI_db",
+      "type": "mssql.azure",
+      "connectionId": "ConnectionStrings:DatefaultConnection",
+      "dynamicId": null
+    }
+  }
+}

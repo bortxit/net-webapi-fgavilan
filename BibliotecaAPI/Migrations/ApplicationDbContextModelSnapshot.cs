@@ -39,13 +39,13 @@ namespace BibliotecaAPI.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(max)");
 
+                    b.Property<string>("Identificacion")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Nombres")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("identificacion")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

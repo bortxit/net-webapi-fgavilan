@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace BibliotecaAPI.NewFolder
+namespace BibliotecaAPI.Validaciones
 {
     public class PrimeraLetraMayusculaAttribute : ValidationAttribute
     {
@@ -16,7 +16,7 @@ namespace BibliotecaAPI.NewFolder
 
             if (primeraLetra != primeraLetra.ToUpper())
             {
-                return new ValidationResult("La primera letra debe ser mayúsucula");
+                return new ValidationResult("La primera letra debe ser mayúscula");
             }
 
             return ValidationResult.Success;

@@ -1,4 +1,4 @@
-﻿using BibliotecaAPI.NewFolder;
+﻿using BibliotecaAPI.Validaciones;
 using System.ComponentModel.DataAnnotations;
 
 namespace BibliotecaAPI.DTOs;
@@ -13,6 +13,6 @@ public class AutorCreacionDTO
     [StringLength(20, ErrorMessage = "El campo {0} debe tener {1} caracteres o menos")]
     [PrimeraLetraMayuscula]
     public required string Apellidos { get; set; }
-    public string? identificacion { get; set; }
+    public string? Identificacion { get; set; }
     public List<LibroCreacionDTO> Libros { get; set; } = [];
 }

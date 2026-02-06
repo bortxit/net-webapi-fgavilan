@@ -1,4 +1,4 @@
-﻿using BibliotecaAPI.NewFolder;
+﻿using BibliotecaAPI.Validaciones;
 using System.ComponentModel.DataAnnotations;
 
 namespace BibliotecaAPI.DTOs;

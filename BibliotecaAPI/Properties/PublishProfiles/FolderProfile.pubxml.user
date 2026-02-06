@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121.
+-->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>C:\Users\Borja\source\repos\BibliotecaAPI\BibliotecaAPI\bin\Release\net9.0\publish\</_PublishTargetUrl>
+    <History>True|2026-02-02T07:20:39.8734069Z||;True|2026-02-02T08:04:27.5138397+01:00||;True|2026-02-01T20:03:50.8072504+01:00||;True|2026-02-01T19:36:34.1688907+01:00||;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+</Project>

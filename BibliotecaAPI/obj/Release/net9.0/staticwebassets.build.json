@@ -1,0 +1,20 @@
+{
+  "Version": 1,
+  "Hash": "DMRVF61cad4acxqLusDo1I00/ggvptXCuVKga4I0grI=",
+  "Source": "BibliotecaAPI",
+  "BasePath": "_content/BibliotecaAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "BibliotecaAPI\\wwwroot",
+      "Source": "BibliotecaAPI",
+      "ContentRoot": "C:\\Users\\Borja\\source\\repos\\BibliotecaAPI\\BibliotecaAPI\\wwwroot\\",
+      "BasePath": "_content/BibliotecaAPI",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [],
+  "Endpoints": []
+}

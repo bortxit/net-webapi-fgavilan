@@ -22,35 +22,35 @@ public class ConfiguracionesController : Controller
         _opcionesPersona = opcionesPersona.Value;
     }
 
-    [HttpGet("options-monitor")]
+    [HttpGet("options-monitor", Name ="ObtenerTarifasV1")]
     public ActionResult GetTarifas()
     {
         return Ok(procesamientoPagos.ObtenerTarifas());
     }
 
 
-    [HttpGet("seccion_1_opciones")]
+    [HttpGet("seccion_1_opciones", Name = "ObtenerSeccion1OpcionesV1")]
     public ActionResult GetSeccion1Opciones()
     {
         return Ok(_opcionesPersona);
     }
 
 
-    [HttpGet("proveedores")]
+    [HttpGet("proveedores", Name = "ObtenerProveedorV1")]
     public ActionResult GetProveedor()
     {
         var valor = configuration.GetValue<string>("quien_soy");
         return Ok(new { valor });
     }
 
-    [HttpGet("obtenertodos")]
+    [HttpGet("obtenertodos", Name = "ObtenerTodosV1")]
     public ActionResult GetObtenerTodos()
     {
         var hijos = seccion_02.GetChildren().Select(x => $"{x.Key}: {x.Value}");
         return Ok(new { hijos });
     }
 
-    [HttpGet("seccion_01")]
+    [HttpGet("seccion_01", Name = "ObtenerSeccion01V1")]
     public ActionResult GetSeccion01()
     {
         var nombre = seccion_01.GetValue<string>("nombre");
@@ -59,7 +59,7 @@ public class ConfiguracionesController : Controller
         return Ok(new { nombre, edad });
     }
 
-    [HttpGet("seccion_02")]
+    [HttpGet("seccion_02", Name = "ObtenerSeccion02V2")]
     public ActionResult GetSeccion02()
     {
         var nombre = seccion_02.GetValue<string>("nombre");
@@ -68,7 +68,7 @@ public class ConfiguracionesController : Controller
         return Ok(new { nombre, edad });
     }
 
-    [HttpGet]
+    [HttpGet(Name = "ObtenerApellidosV1")]
     public ActionResult<string> Get()
     {
         var opcion1 = configuration["apellidos"];
@@ -76,7 +76,7 @@ public class ConfiguracionesController : Controller
         return opcion2;
     }
 
-    [HttpGet("secciones")]
+    [HttpGet("secciones", Name = "ObtenerSeccionesV1")]
     public ActionResult<string> GetSeccion()
     {
         var opcion1 = configuration["ConnectionStrings:DefaultConnection"];

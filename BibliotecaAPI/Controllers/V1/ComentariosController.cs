@@ -30,7 +30,7 @@ public class ComentariosController : ControllerBase
         this.outputCacheStore = outputCacheStore;
     }
 
-    [HttpGet]
+    [HttpGet(Name = "ObtenerComentariosV1")]
     [AllowAnonymous]
     [OutputCache(Tags = [cache])]
     public async Task<ActionResult<List<ComentarioDTO>>> Get(int libroId)
@@ -67,7 +67,7 @@ public class ComentariosController : ControllerBase
         return mapper.Map<ComentarioDTO>(comentario);
     }
 
-    [HttpPost]
+    [HttpPost(Name = "CrearComentarioV1")]
     public async Task<ActionResult<ComentarioDTO>> Post(int libroId, ComentarioCreacionDTO comentarioCreacionDTO)
     {
         var existeLibro = await context.Libros.AnyAsync(x => x.Id == libroId);
@@ -97,7 +97,7 @@ public class ComentariosController : ControllerBase
         return CreatedAtRoute("ObtenerComentarioV1", new { id = comentario.Id, libroId }, comentarioDTO);
     }
 
-    [HttpPatch("{id}")]
+    [HttpPatch("{id}", Name = "PatchComentarioV1")]
     public async Task<ActionResult> Patch(Guid id, int libroId, JsonPatchDocument<ComentarioPatchDTO> patchDoc)
     {
         if (patchDoc is null)
@@ -150,7 +150,7 @@ public class ComentariosController : ControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id}", Name = "BorrarComentarioV1")]
     public async Task<ActionResult> Delete(Guid id, int libroId)
     {
         var existeLibro = await context.Libros.AnyAsync(x => x.Id == libroId);
