@@ -31,7 +31,7 @@ jobs:
         run: dotnet restore
 
       - name: Compilar
-        run: dotnet build --no-restore --verbosity normal --logger "console;verbosity=detailed"
+        run: dotnet build --no-restore
 
       - name: Realizar pruebas
-        run: dotnet test --no-build
+        run: dotnet test --no-build --verbosity normal --logger "console;verbosity=detailed"
