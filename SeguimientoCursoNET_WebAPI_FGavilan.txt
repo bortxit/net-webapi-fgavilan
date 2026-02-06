@@ -12203,6 +12203,84 @@ Sección 10: Despliegues
 		-Pudiendo ser este ambiente de QA, staging o PROD.
 		-Nosotros para esto, usaremos GitHub Actions.
 		
+	209. Subiendo el código a GitHub
+		-primero, se crea cuenta, se crea Repo.
+		-Lo hacemos privado. De esta forma, con Github Actions se da 2000 mins al mes.
+		-Si es publico, infinito de tiempo.
+		-Se tenía ya el repo montado ys e sube todo....OJO QUE FALTA LA BBBDD....
+	
+	210. Breve introducción a los Github Actions
+		-Con esto se va a poder hacer los procesos de CI/CD.
+		-Estos permitern automatizar tareas relacionadas con nuestro repo.
+		-Se va a hacer un Hola Mundo via Github Actions.
+		-Se le da a GithubActions. Es un fichero de extension yml que es comun a la hora de automatizar estos procesos.
+		-on: es bajo que condiciones se peude ejecutare ste fichero.
+		-Se peude ejecutar con un oull request, al hacer uso de un boton, cuando haga cambios en git....
+		-Los tabas y espacios también son importantes.
+		-workflow_dispatch es para ejecutar de forma manual
+		-push es que cuando nuestro proyecto reciba cambios, quiero ejecutar este workflow y quiero pasarle argumentos.
+		-Aqui se indican las ramas que deben ser actualizadas para ejecutar este workflow. Aqui solo main.
+		-Aqui tambien se puede indicar las rutas qe se quiere que sean actualizadas.
+		-Puede que haya algunos cambios de ficheros que si quiero que implique que haga compilaciones en el proyecto que es de lo que tarta también la Integración Continua.
+		-Le voy a decir que ante el cambio de cualquier fichero dentro de BibliotecaAPi quiero ejecutar este proceso.
+		-jobs son las acciones que se van a ejecutar en este workflow. Un job es un conjunto de tareas.
+		-runs-on en que am,biente quiero que se ejecute este workflow. El ams barato es ubuntu-latest. Es el mas barato porque de los 2100 minutos esos, si 
+		 empleamos windows pues es mas caro.
+		-steps son las tareas individuales que vamos a ejecutar.
+		-Cuando hay listado de elementos se ve que se usa el guion para diferenciar una tarea de otra por ejemplo.
+		-Checkout toma codigo de repositorio y descarga el codigo de proyecto para usarlo o correr las pruebas automaticas.
+		-Se busca checkout en el buscador del panel de la dderecha.
+		-Se coge lo de uses.
+		-Para ver que se ha logrado traer el codigo del repo, se mete otra tarea despues.
+		-tree es para mostrar los archivos en carpeta tipo arbol.
+		name: Hola Mundo
+
+		on:
+		  workflow_dispatch: # ejecución manual
+		  push:
+			branches:
+			  - main
+			paths:
+			  - 'BibliotecaAPI/**'
+			  - 'BibliotecaAPiTests/**'
+			  - './gihub/workflows/hola-mundo.yml'
+		  pull_request:
+			branches:
+			- main
+
+		jobs:
+		  saludar:
+			runs-on: ubuntu-latest
+			steps:
+			  - name: Muestra mensaje hola mundo
+				run: echo "Hola mundo, Felipe"
+
+			  - name: Checkout
+				uses: actions/checkout@v6.0.2
+
+			  - name: Listar los archivos del repositorio
+				run: |
+				  echo "El repositorio ${{ github.repository }} contiene los siguientes archivos":
+				  tree    
+	
+		-Commit y se crea en el main.
+		-Se va a Actions y se le da a saludar.
+		-Se clica en el workflow y se va viendo que se van ejecutando los diferentes steps que configuramos.
+		-Se muestra dónde se encuentra el yml en el repo.
+		-Se edita de nuevo en directo y no se quiere que se ejecute siempre que se edita el proyecto.
+		-Se comenta lo del push y pull request.
+		-Para ejecutarlo manualmente se le da a Run Workflow...
+		
+	
+	211. Implementando la Integración Continua
+		-Se va a poder compilar el proyecto y correr las pruebas automaticas para luego emplear la entrega continua y este compilado mandar a Azure.
+		-Se crea un nuevo workflow: compilar-y-desplegar.yml.
+		-Se van a colocar variables de ambientes que eprmiten definir variables que se peuden usar en el workflow.
+		-Esta bien para centralziar aquellas cosas que pueden cambiar como la version de .NET.
+		-Aunque vamos a compilar y desplegar a maquina de Windows en Azure, se puede hacer este proceso desde ubuntu.
+		-Ademas de definir una variable de ambiente a nivel del workflow completo, se puede definir variable de ambiente a nivel del job.
+		
+		
 		
 		
 		
