@@ -16,7 +16,7 @@ using System.Text;
 //namespace BibliotecaAPI;
 
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilderABC(args);
 
 var diccionarioConfiguraciones = new Dictionary<string, string>
 {
@@ -25,7 +25,7 @@ var diccionarioConfiguraciones = new Dictionary<string, string>
 
 builder.Configuration.AddInMemoryCollection(diccionarioConfiguraciones!);
 
-//área de servicios
+//Ã¡rea de servicios
 
 builder.Services.AddOutputCache(opciones =>
 {
@@ -136,7 +136,7 @@ builder.Services.AddSwaggerGen(opciones =>
         Contact = new Microsoft.OpenApi.Models.OpenApiContact
         {
             Email = "felipe@hotmail.com",
-            Name = "Felipe Gavilán",
+            Name = "Felipe GavilÃ¡n",
             Url = new Uri("https://gavilan.blog")
         },
         License = new Microsoft.OpenApi.Models.OpenApiLicense
@@ -154,7 +154,7 @@ builder.Services.AddSwaggerGen(opciones =>
         Contact = new Microsoft.OpenApi.Models.OpenApiContact
         {
             Email = "felipe@hotmail.com",
-            Name = "Felipe Gavilán",
+            Name = "Felipe GavilÃ¡n",
             Url = new Uri("https://gavilan.blog")
         },
         License = new Microsoft.OpenApi.Models.OpenApiLicense
@@ -202,7 +202,7 @@ var app = builder.Build();
 //    }
 //}
 
-// área de middlewares
+// Ã¡rea de middlewares
 
 app.UseExceptionHandler(exceptionHandlerApp => exceptionHandlerApp.Run(async context =>
 {
