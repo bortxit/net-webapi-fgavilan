@@ -1,0 +1,29 @@
+name: Hola Mundo
+
+on:
+  workflow_dispatch: # ejecución manual
+  push:
+    branches:
+      - main
+    paths:
+      - 'BibliotecaAPI/**'
+      - 'BibliotecaAPiTests/**'
+      - './gihub/workflows/hola-mundo.yml'
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  saludar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Muestra mensaje hola mundo
+        run: echo "Hola mundo, Felipe"
+
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Listar los archivos del repositorio
+        run: |
+          echo "El repositorio ${{ github.repository }} contiene los siguientes archivos":
+          tree      
