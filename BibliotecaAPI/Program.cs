@@ -16,7 +16,7 @@ using System.Text;
 //namespace BibliotecaAPI;
 
 
-var builder = WebApplication.CreateBuilderABC(args);
+var builder = WebApplication.CreateBuilder(args);
 
 var diccionarioConfiguraciones = new Dictionary<string, string>
 {
