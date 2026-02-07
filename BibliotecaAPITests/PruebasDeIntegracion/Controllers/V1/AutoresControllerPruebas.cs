@@ -2,6 +2,7 @@
 using BibliotecaAPI.Entidades;
 using BibliotecaAPITests.Utilidades;
 using System.Net;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
 

@@ -23,7 +23,7 @@
       "NETCOREAPP3_0_OR_GREATER",
       "NETCOREAPP3_1_OR_GREATER"
     ],
-    "languageVersion": "latest",
+    "languageVersion": "13.0",
     "platform": "",
     "allowUnsafe": false,
     "warningsAsErrors": false,

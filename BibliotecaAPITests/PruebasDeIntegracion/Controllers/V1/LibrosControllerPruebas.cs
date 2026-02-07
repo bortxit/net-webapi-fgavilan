@@ -1,6 +1,7 @@
 ﻿using BibliotecaAPI.DTOs;
 using BibliotecaAPITests.Utilidades;
 using System.Net;
+using System.Net.Http.Json;
 
 namespace BibliotecaAPITests.PruebasDeIntegracion.Controllers.V1
 {
