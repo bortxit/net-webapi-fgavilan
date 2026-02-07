@@ -48,6 +48,7 @@ namespace BibliotecaAPI.Controllers.V1
         // [ServiceFilter<HATEOASAutoresAttribute>()]
         public async Task<IEnumerable<AutorDTO>> Get([FromQuery] PaginacionDTO paginacionDTO)
         {
+            throw new ApplicationException("Esta línea debe ser borrada");
             return await servicioAutoresV1.Get(paginacionDTO);
         }
 
