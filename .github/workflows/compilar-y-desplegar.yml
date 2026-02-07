@@ -34,4 +34,4 @@ jobs:
         run: dotnet build --no-restore
 
       - name: Realizar pruebas
-        run: dotnet test --no-build --verbosity normal
+        run: dotnet test BibliotecaAPITests/BibliotecaAPITests.csproj --no-build --verbosity detailed
