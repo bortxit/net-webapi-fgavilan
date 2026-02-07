@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
-using BibliotecaAPI;
 using BibliotecaAPI.Datos;
 using BibliotecaAPI.DTOs;
 using BibliotecaAPI.Utilidades;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -41,12 +41,13 @@ public class BasePruebas
         return config.CreateMapper();
     }
 
-    protected WebApplicationFactory<ApiMarker> ConstruirWebApplicationFactory(string nombreBD, bool ignorarSeguridad = true)
+    protected WebApplicationFactory<Program> ConstruirWebApplicationFactory(string nombreBD, bool ignorarSeguridad = true)
     {
-        var factory = new WebApplicationFactory<ApiMarker>();
+        var factory = new WebApplicationFactory<Program>();
 
         factory = factory.WithWebHostBuilder(builder =>
         {
+            builder.UseEnvironment("Testing");
             builder.ConfigureTestServices(services =>
             {
                 ServiceDescriptor descriptorDBContext = services.SingleOrDefault(
@@ -75,13 +76,13 @@ public class BasePruebas
         return factory;
     }
 
-    protected async Task<string> CrearUsuario(string nombreBD, WebApplicationFactory<ApiMarker> factory)
+    protected async Task<string> CrearUsuario(string nombreBD, WebApplicationFactory<Program> factory)
         => await CrearUsuario(nombreBD, factory, [], "ejemplo@hotmail.com");
 
-    protected async Task<string> CrearUsuario(string nombreBD, WebApplicationFactory<ApiMarker> factory, IEnumerable<Claim> claims)
+    protected async Task<string> CrearUsuario(string nombreBD, WebApplicationFactory<Program> factory, IEnumerable<Claim> claims)
         => await CrearUsuario(nombreBD, factory, claims, "ejemplo@hotmail.com");
 
-    protected async Task<string> CrearUsuario(string nombreBD, WebApplicationFactory<ApiMarker> factory,
+    protected async Task<string> CrearUsuario(string nombreBD, WebApplicationFactory<Program> factory,
         IEnumerable<Claim> claims, string email)
     {
         var urlRegistro = "/api/v1/usuarios/registro";
@@ -110,7 +111,7 @@ public class BasePruebas
         return token;
     }
 
-    private async Task<string> ObtenerToken(string email, string url, WebApplicationFactory<ApiMarker> factory)
+    private async Task<string> ObtenerToken(string email, string url, WebApplicationFactory<Program> factory)
     {
         var password = "aA123456!";
         var credenciales = new CredencialesUsuarioDTO { Email = email, Password = password };

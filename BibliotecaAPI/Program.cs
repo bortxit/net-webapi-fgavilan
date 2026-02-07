@@ -233,7 +233,11 @@ app.UseSwaggerUI(opciones =>
     opciones.SwaggerEndpoint("/swagger/v2/swagger.json", "Biblioteca API V2");
 });
 
-app.UseStaticFiles();
+// app.UseStaticFiles();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseStaticFiles();
+}
 
 // app.UseCors();
 
