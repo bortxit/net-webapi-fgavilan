@@ -12279,6 +12279,189 @@ Sección 10: Despliegues
 		-Esta bien para centralziar aquellas cosas que pueden cambiar como la version de .NET.
 		-Aunque vamos a compilar y desplegar a maquina de Windows en Azure, se puede hacer este proceso desde ubuntu.
 		-Ademas de definir una variable de ambiente a nivel del workflow completo, se puede definir variable de ambiente a nivel del job.
+		-Esto es util si tengo varios jobs y tego variables que se pueden acceder en un job y no en otro.
+		-Checkout para traer lo ficheros de repo, luego traer .NET...
+		-with es para pasarle argumentos.
+		-Luegi se obtienen dependencias de proyecto y compilar.
+		-se busca setup .net core sdk en el panel de la derecha.
+		name: Compilar y Desplegar
+
+		on:
+		  workflow_dispatch:
+		  push:
+			branches:
+			  - main
+			paths:
+			  - 'BibliotecaAPI/**'
+			  - 'BibliotecaAPITests/**'
+			  - '.github/workflows/compilar-y-desplegar.yml'
+
+		env:
+		  VERSION_DOTNET: '9'
+
+		jobs:
+		  build:
+			runs-on: ubuntu-latest
+			env:
+			  proyecto: BibliotecaAPI/BibliotecaAPI.csproj
+			steps:
+			  - name: Checkout
+				uses: actions/checkout@v6.0.2
+			   
+			  - name: Instalar .NET
+				uses: actions/setup-dotnet@v5.1.0
+				with:
+				  dotnet-version: ${{ env.VERSION_DOTNET }}
+
+			  - name: Obteniendo las dependencias
+				run: dotnet restore
+
+			  - name: Compilar
+				run: dotnet build --no-restore
+
+			  - name: Realizar pruebas
+				run: dotnet test --no-build
+			   
+			
+    
+		-Commit > Actions y le damos al build.
+		
+		-Ha ido OK y vamos a provocar un error a posta.
+		-Le ponemos al primer metodo de Program.cs un ABC al final...
+		-Se para el proceso en la compilacion y no se ejecutan las pruebas.
+		-Se devuelve a como estaba y se rompe una prueba automatica. Por ejemplo, COntrollers > V1 > 
+		-En el Get se añade un throw...
+		[HttpGet(Name = "ObtenerAutoresV1")] // /api/autores/
+        [AllowAnonymous]
+        // [OutputCache(Tags = [cache])]
+        // [ServiceFilter<HATEOASAutoresAttribute>()]
+        public async Task<IEnumerable<AutorDTO>> Get([FromQuery] PaginacionDTO paginacionDTO)
+        {
+            throw new ApplicationException("Debes borrar esta línea");
+            return await servicioAutoresV1.Get(paginacionDTO);
+        }
+		
+		-Son muy importantes estas dos lineas en el proyecto de Testing.
+		<Project Sdk="Microsoft.NET.Sdk">
+		<IsTestProject>true</IsTestProject>
+		
+		-Sino en CI no tira....
+		-Esta linea da mucho detalle...
+		Run dotnet test BibliotecaAPITests/BibliotecaAPITests.csproj --no-build --verbosity detailed
+		
+		-Ojo con UseStaticFiles en program.cs para prueba sintegradas y ojo con meter el proyecto de pruebas en el sln.
+		
+	212. Implementando la Entrega Continua
+		-Vamos a configurar GitHubActions para hacer despliegue del codigo Azure.
+		-Primero hay que configruar el proyecto de Azxure del Azure App Service para que peuda recibir el compilado producido por el 
+		 Github Actions.
+		-Se va a App Service en Azure > Configuration
+		-Se activa esta opcion: Credenciales de publicación de autenticación básica de SCM
+		-Overview > Restart para que tome efecto y Download publish profile...
+		-Es como descargar un string que va a permitir desde cualquier lugar hacer un despliegue hacia Azure App Service.
+		-Se le da a copiar > Se va a Github dentro del repo, Settings > Secrets and Variables > Actions > Colocar secreto.
+		-Este string es importante porque nos permite publicar hacia nuestro server.
+		-Esto es como avriable secreta para que eprsona que tiene acceso a Workflow no peuda acceder a este secreto.
+		-Se va al fichero yml de github actions del video anterior
+		-AZURE_APP_SERVICE_UBICACION_PAQUETE: '.' => Esto porque cuando vaya a hacer el despliegue, los archivos de mi webapi estarán en el mismod irectorio en el que estoy, diferente 
+		 que si estuviera en una carpeta, sino en el mismo directorio en el que me encuentro.
+		-Voy a tener el job del build y del despliegue. Son dos procesos difernetes. Sin embargo, para yo oibtener ejecutables, ddls, apsettings.json,
+		 tengo que colocarlo como un ARTIFACT. Un artefacto es aquello que produce mi proceso de Integración Continua, para que otro proceso, otro job, pueda 
+		 tomarlo, descargarlo y utilziarlo.
+		-Se mete otro step más.
+		-Lo de publish 32 bits es porque por defecto en la config del Azure App Service aparece que se crea por defecto con 32 bits.
+		- name: Publicar el Web API
+		  run: dotnet publish $proyecto -c Release -o miapp --runtime win-x86
+		
+		-Ahora vamos a colocar los archivos finales como artifact. Upload a build artifact a buscar en el panel derecho.
+		-Es util meter el path por si hay avrias carpetas con varios proyectos.
+		-A traves del nombre puedo descargar los archivos que coloque en el path.
+		
+		-Hasta aqui se acaba con el build y se va con otro job, otor proceso distitno (deploy o despliegue).
+		-Lo de los permisssions es para que ni acceda al repo, ni descargue nada.
+		-Algo cehevere de tener varios jobs coo despliegue y build es que pueden correr en paralelo y es ams rapido todo.
+		-Pero, ahora, se necesita que el build acabe antes que el despliegue.
+		-Se indica en el needs.		
+		-Se va con steps. Se va a adownload a build artifact. Ese name coincide con el name del job de build del Caragr artefacto (se descarga lo que se cargó).
+		-Se busca Azure Web App para el siguiente step.
+		-Vamos a version 2 porque las 3 tiene error.
+		-El publish profile esta en el settings.
+		name: Compilar y Desplegar
+
+		on:
+		  workflow_dispatch:
+		  push:
+			branches:
+			  - main
+			paths:
+			  - 'BibliotecaAPI/**'
+			  - 'BibliotecaAPITests/**'
+			  - '.github/workflows/compilar-y-desplegar.yml'
+
+		env:
+		  VERSION_DOTNET: '9'
+		  AZURE_APP_SERVICE_NOMBRE: BibliotecaAPI20260117144241
+		  AZURE_APP_SERVICE_UBICACION_PAQUETE: '.'
+
+		jobs:
+		  build:
+			runs-on: ubuntu-latest
+			env:
+			  proyecto: BibliotecaAPI/BibliotecaAPI.csproj
+			steps:
+			  - name: Checkout
+				uses: actions/checkout@v6.0.2
+			   
+			  - name: Instalar .NET
+				uses: actions/setup-dotnet@v5.1.0
+				with:
+				  dotnet-version: ${{ env.VERSION_DOTNET }}
+
+			  - name: Obteniendo las dependencias
+				run: dotnet restore
+
+			  - name: Compilar
+				run: dotnet build --no-restore
+
+			  - name: Realizar pruebas
+				run: dotnet test --no-build --verbosity detailed
+
+			  - name: Publicar el Web API
+				run: dotnet publish $proyecto -c Release -o miapp --runtime win-x86
+
+			  - name: Cargar Artefacto
+				uses: actions/upload-artifact@v6.0.0
+				with:
+				  path: ./miapp
+				  name: build
+		  despliegue:
+			permissions:
+			  contents: none
+			runs-on: ubuntu-latest
+			needs: build
+			steps:
+			  - name: Obtener los artefactos
+				uses: actions/download-artifact@v7.0.0
+				with:
+				  name: build
+
+			  - name: Despliegue al Azure App Service
+				uses: Azure/webapps-deploy@v2.2.17
+				with:
+				  app-name: ${{ env.AZURE_APP_SERVICE_NOMBRE }}
+				  publish-profile: ${{ secrets.AZURE_PERFIL_PUBLICO }}
+				  package: ${{ env.AZURE_APP_SERVICE_UBICACION_PAQUETE }}
+		
+		-Antes de hacer el commit se va a Azure Web Apps > Configuracion > variables de Entorno > WEBSITE_NODE_DEFAULT_VERSION
+		-Version 14.17.0.
+		-Apply y Confirm para que el despliegue funcione. Es toe s porque hay u bug que no permite hacer el despliegue correcto desde GithubActions.
+		-Ya se le da a Commit en GitHubActions y vemos cómo va el build y despliegue.
+		-Asi todo ha ido OK.
+		-vamos a ir a Azure al Overview y le damos a Browse para abrir webapi/swagger.
+		-Este punto hay que hacerlo así:
+			- name: Publicar el Web API
+			  run: dotnet publish $proyecto -c Release -o miapp --runtime win-x86 --self-contained true
+	
 		
 		
 		
