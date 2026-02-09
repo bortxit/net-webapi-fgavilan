@@ -39,8 +39,8 @@ jobs:
         run: dotnet test --no-build --verbosity detailed
 
       - name: Publicar el Web API
-        run: dotnet publish $proyecto -c Release -o miapp --runtime win-x64
-
+        run: dotnet publish $proyecto -c Release -o miapp --runtime win-x86 --self-contained true
+        
       - name: Cargar Artefacto
         uses: actions/upload-artifact@v6.0.0
         with:
